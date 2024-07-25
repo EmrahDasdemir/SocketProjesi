@@ -18,19 +18,33 @@ app.get("/", (req, res) => {
 const users = [];
 const msgs = [];
 
+let adminAssigned = false; // Admin atama kontrolü için değişken
+
 io.on("connection", (socket) => {
-  console.log("a user connected");
+  console.log("A user connected");
+
+  let connectedUserName = null;
 
   // Yeni kullanıcı verisi alınıp oluşturuluyor
-  socket.on("new user", (name, role) => {
+  socket.on("new user", (name) => {
+    connectedUserName = name; // Kullanıcı adını kaydediyoruz
+
+    // İlk kullanıcı admin olarak atanacak
+    const role = adminAssigned ? "user" : "admin";
+    if (!adminAssigned) {
+      adminAssigned = true; // İlk admin atandı, bundan sonra gelenler user olacak
+    }
+
     const newUser = {
       id: uuidv4(),
       name: name,
       role: role,
       score: -1,
+      socketId: socket.id, // Kullanıcının socket.id'sini saklıyoruz
     };
     users.push(newUser);
     io.emit("user list", JSON.stringify(users));
+    console.log(`${connectedUserName} connected as ${role}`); // Kullanıcı adıyla loglama
   });
 
   // Kullanıcı mesajı alındığında
@@ -59,29 +73,72 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("user disconnected");
+    const disconnectedUserIndex = users.findIndex(
+      (u) => u.socketId === socket.id
+    );
+    if (disconnectedUserIndex !== -1) {
+      const disconnectedUser = users[disconnectedUserIndex];
+      console.log(`${disconnectedUser.name} disconnected`);
+      users.splice(disconnectedUserIndex, 1); // Kullanıcıyı listeden kaldır
+      io.emit("user list", JSON.stringify(users)); // Güncellenmiş kullanıcı listesini gönder
+    }
   });
 });
 
 app.get("/users", (req, res) => {
-  res.json(users); // Return users array as JSON
+  console.log("GET /users");
+  console.log(users);
+  res.json(users);
 });
 
 app.post("/new-user", (req, res) => {
-  console.log(req.body); // Debugging line
+  console.log("POST /new-user", req.body);
   const { name, email } = req.body;
+
+  const isValidName = (name) => {
+    return typeof name === "string" && name.length >= 3;
+  };
+
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  if (!isValidName(name)) {
+    console.log("Invalid name format");
+    return res.status(400).json({ error: "Invalid name format" });
+  }
+
+  if (!isValidEmail(email)) {
+    console.log("Invalid email format");
+    return res.status(400).json({ error: "Invalid email format" });
+  }
+
   if (name && email) {
+    let adminExists = users.some((user) => user.role === "admin");
     const newUser = {
       id: uuidv4(),
       name: name,
       email: email,
+      role: adminExists ? "user" : "admin", // İlk admin yoksa admin olarak atanacak
       score: -1,
+      socketId: null, // POST request ile eklenen kullanıcılar için socketId yok
     };
+
+    if (newUser.role === "admin") {
+      // Mevcut kullanıcıların rolünü "user" olarak ayarlama
+      users.forEach((user) => {
+        user.role = "user";
+      });
+    }
+
     users.push(newUser);
+    console.log(users);
     io.emit("user list", JSON.stringify(users));
     res.status(201).json(newUser);
   } else {
-    res.status(400).json({ error: "Name and role are required" });
+    console.log("Name and email are required");
+    res.status(400).json({ error: "Name and email are required" });
   }
 });
 
