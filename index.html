@@ -125,7 +125,10 @@
             messagesElement.appendChild(li);
           });
         });
-
+        socket.on("user list", function (msgList) {
+          const msgs = JSON.parse(msgList);
+          console.log(msgs);
+        });
         // Puan güncellemesi (örnek: bir butona tıklayınca)
         function updateScore(score) {
           if (userId) {
