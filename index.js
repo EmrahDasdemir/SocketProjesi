@@ -18,21 +18,19 @@ app.get("/", (req, res) => {
 const users = [];
 const msgs = [];
 
-let adminAssigned = false; // Admin atama kontrolü için değişken
+let adminAssigned = false;
 
 io.on("connection", (socket) => {
   console.log("A user connected");
 
   let connectedUserName = null;
 
-  // Yeni kullanıcı verisi alınıp oluşturuluyor
   socket.on("new user", (name) => {
-    connectedUserName = name; // Kullanıcı adını kaydediyoruz
+    connectedUserName = name;
 
-    // İlk kullanıcı admin olarak atanacak
     const role = adminAssigned ? "user" : "admin";
     if (!adminAssigned) {
-      adminAssigned = true; // İlk admin atandı, bundan sonra gelenler user olacak
+      adminAssigned = true;
     }
 
     const newUser = {
@@ -40,14 +38,13 @@ io.on("connection", (socket) => {
       name: name,
       role: role,
       score: -1,
-      socketId: socket.id, // Kullanıcının socket.id'sini saklıyoruz
+      socketId: socket.id,
     };
     users.push(newUser);
     io.emit("user list", JSON.stringify(users));
-    console.log(`${connectedUserName} connected as ${role}`); // Kullanıcı adıyla loglama
+    console.log(`${connectedUserName} connected as ${role}`);
   });
 
-  // Kullanıcı mesajı alındığında
   socket.on("chat message", (msg, userName) => {
     const timestamp = new Date().toLocaleTimeString();
     const message = { text: msg, name: userName, time: timestamp };
@@ -56,14 +53,12 @@ io.on("connection", (socket) => {
     io.emit("chat message", JSON.stringify(msgs));
   });
 
-  // Kullanıcı kaydı işlemi
   socket.on("userRegister", (user) => {
     console.log("Received user registration:", user);
     users.push(user);
     io.emit("userRegister", JSON.stringify(user));
   });
 
-  // Kullanıcı puan güncellemesi
   socket.on("update score", (userId, score) => {
     const user = users.find((u) => u.id === userId);
     if (user) {
@@ -72,22 +67,18 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Kullanıcı rolünü güncelleme
   socket.on("updateRole", (userId, newRole) => {
     const user = users.find((u) => u.id === userId);
     if (user && newRole === "admin") {
-      // Diğer tüm kullanıcıları user olarak ayarla
       users.forEach((u) => {
         if (u.role === "admin") {
           u.role = "user";
         }
       });
-      // Yeni admin'i ayarla
       user.role = newRole;
       io.emit("user list", JSON.stringify(users));
       console.log(`${user.name} is now admin`);
     } else if (user) {
-      // Yeni rolü ayarla
       user.role = newRole;
       io.emit("user list", JSON.stringify(users));
     }
@@ -100,8 +91,8 @@ io.on("connection", (socket) => {
     if (disconnectedUserIndex !== -1) {
       const disconnectedUser = users[disconnectedUserIndex];
       console.log(`${disconnectedUser.name} disconnected`);
-      users.splice(disconnectedUserIndex, 1); // Kullanıcıyı listeden kaldır
-      io.emit("user list", JSON.stringify(users)); // Güncellenmiş kullanıcı listesini gönder
+      users.splice(disconnectedUserIndex, 1);
+      io.emit("user list", JSON.stringify(users));
     }
   });
 });
@@ -117,7 +108,6 @@ app.post("/new-user", (req, res) => {
   const { name, email } = req.body;
 
   const isValidName = (name) => {
-    // İsim sadece harf ve boşluk içerebilir, en az 3 karakter uzunluğunda olmalı
     const nameRegex = /^[A-Za-z\s]{3,}$/;
     return nameRegex.test(name);
   };
@@ -138,19 +128,17 @@ app.post("/new-user", (req, res) => {
   }
 
   if (name && email) {
-    // Eğer rol admin ise, mevcut tüm kullanıcıları user olarak güncelle
     let adminExists = users.some((user) => user.role === "admin");
     const newUser = {
       id: uuidv4(),
       name: name,
       email: email,
-      role: adminExists ? "user" : "admin", // İlk admin yoksa admin olarak atanacak
+      role: adminExists ? "user" : "admin",
       score: -1,
-      socketId: null, // POST request ile eklenen kullanıcılar için socketId yok
+      socketId: null,
     };
 
     if (newUser.role === "admin") {
-      // Mevcut kullanıcıların rolünü "user" olarak ayarlama
       users.forEach((user) => {
         user.role = "user";
       });
@@ -178,7 +166,6 @@ app.post("/users/update-role", (req, res) => {
     return res.status(404).json({ error: "User not found" });
   }
 
-  // Eğer yeni rol admin ise, diğer adminleri user yap
   if (newRole === "admin") {
     users.forEach((u) => {
       if (u.role === "admin") {
