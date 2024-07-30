@@ -72,6 +72,27 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Kullanıcı rolünü güncelleme
+  socket.on("updateRole", (userId, newRole) => {
+    const user = users.find((u) => u.id === userId);
+    if (user && newRole === "admin") {
+      // Diğer tüm kullanıcıları user olarak ayarla
+      users.forEach((u) => {
+        if (u.role === "admin") {
+          u.role = "user";
+        }
+      });
+      // Yeni admin'i ayarla
+      user.role = newRole;
+      io.emit("user list", JSON.stringify(users));
+      console.log(`${user.name} is now admin`);
+    } else if (user) {
+      // Yeni rolü ayarla
+      user.role = newRole;
+      io.emit("user list", JSON.stringify(users));
+    }
+  });
+
   socket.on("disconnect", () => {
     const disconnectedUserIndex = users.findIndex(
       (u) => u.socketId === socket.id
@@ -96,7 +117,9 @@ app.post("/new-user", (req, res) => {
   const { name, email } = req.body;
 
   const isValidName = (name) => {
-    return typeof name === "string" && name.length >= 3;
+    // İsim sadece harf ve boşluk içerebilir, en az 3 karakter uzunluğunda olmalı
+    const nameRegex = /^[A-Za-z\s]{3,}$/;
+    return nameRegex.test(name);
   };
 
   const isValidEmail = (email) => {
@@ -115,6 +138,7 @@ app.post("/new-user", (req, res) => {
   }
 
   if (name && email) {
+    // Eğer rol admin ise, mevcut tüm kullanıcıları user olarak güncelle
     let adminExists = users.some((user) => user.role === "admin");
     const newUser = {
       id: uuidv4(),
@@ -140,6 +164,36 @@ app.post("/new-user", (req, res) => {
     console.log("Name and email are required");
     res.status(400).json({ error: "Name and email are required" });
   }
+});
+
+app.post("/users/update-role", (req, res) => {
+  const { userId, newRole } = req.body;
+
+  if (!userId || !newRole) {
+    return res.status(400).json({ error: "userId and newRole are required" });
+  }
+
+  const user = users.find((u) => u.id === userId);
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  // Eğer yeni rol admin ise, diğer adminleri user yap
+  if (newRole === "admin") {
+    users.forEach((u) => {
+      if (u.role === "admin") {
+        u.role = "user";
+      }
+    });
+    user.role = newRole;
+    io.emit("user list", JSON.stringify(users));
+    console.log(`${user.name} is now admin`);
+  } else {
+    user.role = newRole;
+    io.emit("user list", JSON.stringify(users));
+  }
+
+  res.status(200).json(user);
 });
 
 server.listen(3000, () => {
