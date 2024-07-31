@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const { v4: uuidv4 } = require("uuid");
-
 const users = [];
 let adminAssigned = false;
 
@@ -52,6 +51,26 @@ router.post("/new-user", (req, res) => {
         user.role = "user";
       });
     }
+    socket.on("new user", (name) => {
+      connectedUserName = name;
+
+      const role = getAdminAssigned() ? "user" : "admin";
+      if (!getAdminAssigned()) {
+        setAdminAssigned(true);
+      }
+
+      const newUser = {
+        id: uuidv4(),
+        name: name,
+        role: role,
+        score: -1,
+        socketId: socket.id,
+        status: true,
+      };
+      users.push(newUser);
+      io.emit("user list", JSON.stringify(users));
+      console.log(`${connectedUserName} connected as ${role}`);
+    });
 
     users.push(newUser);
     console.log(users);

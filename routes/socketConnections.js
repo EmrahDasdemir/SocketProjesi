@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 
-module.exports = function (io, users, msgs, adminAssigned) {
+module.exports = (io, users, msgs, getAdminAssigned, setAdminAssigned) => {
   io.on("connection", (socket) => {
     console.log("A user connected");
 
@@ -9,9 +9,9 @@ module.exports = function (io, users, msgs, adminAssigned) {
     socket.on("new user", (name) => {
       connectedUserName = name;
 
-      const role = adminAssigned ? "user" : "admin";
-      if (!adminAssigned) {
-        adminAssigned = true;
+      const role = getAdminAssigned() ? "user" : "admin";
+      if (!getAdminAssigned()) {
+        setAdminAssigned(true);
       }
 
       const newUser = {
@@ -65,17 +65,21 @@ module.exports = function (io, users, msgs, adminAssigned) {
         io.emit("user list", JSON.stringify(users));
       }
     });
+    socket.on("user online", (userId) => {
+      users[userId] = { id: userId, status: true };
+      io.emit("user list", JSON.stringify(Object.values(users)));
+    });
 
     socket.on("disconnect", () => {
-      const disconnectedUserIndex = users.findIndex(
-        (u) => u.socketId === socket.id
-      );
-      if (disconnectedUserIndex !== -1) {
-        const disconnectedUser = users[disconnectedUserIndex];
-        disconnectedUser.status = false;
-        console.log(`${disconnectedUser.name} disconnected`);
-        io.emit("user list", JSON.stringify(users));
+      console.log("A user disconnected");
+      for (let userId in users) {
+        if (users[userId].socketId === socket.id) {
+          users[userId].status = false;
+          delete users[userId].socketId; // socketId'yi kaldır
+          break;
+        }
       }
+      io.emit("user list", JSON.stringify(Object.values(users)));
     });
   });
 };
