@@ -88,4 +88,19 @@ router.post("/update-role", (req, res) => {
   res.status(200).json(user);
 });
 
+router.delete("/:userId", (req, res) => {
+  const { userId } = req.params;
+  console.log(`Attempting to delete user with ID: ${userId}`);
+
+  const userIndex = users.findIndex((user) => user.id === userId);
+  if (userIndex !== -1) {
+    const removedUser = users.splice(userIndex, 1)[0];
+    console.log(`${removedUser.name} has been deleted`);
+    res.status(200).json({ message: "User deleted successfully" });
+  } else {
+    console.log("User not found");
+    res.status(404).json({ error: "User not found" });
+  }
+});
+
 module.exports = router;
