@@ -44,6 +44,7 @@ router.post("/new-user", (req, res) => {
       role: adminExists ? "user" : "admin",
       score: -1,
       socketId: null,
+      status: false,
     };
 
     if (newUser.role === "admin") {
