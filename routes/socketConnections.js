@@ -18,10 +18,11 @@ module.exports = (io, users, msgs, getAdminAssigned, setAdminAssigned) => {
         id: uuidv4(),
         name: name,
         role: role,
-        score: -1,
+        score: 0,
         socketId: socket.id,
         status: true,
       };
+
       users.push(newUser);
       io.emit("user list", JSON.stringify(users));
       console.log(`${connectedUserName} connected as ${role}`);
@@ -35,16 +36,29 @@ module.exports = (io, users, msgs, getAdminAssigned, setAdminAssigned) => {
       io.emit("chat message", JSON.stringify(msgs));
     });
 
-    socket.on("userRegister", (user) => {
-      console.log("Received user registration:", user);
-      users.push(user);
-      io.emit("userRegister", JSON.stringify(user));
+    socket.on("user online", (userId) => {
+      const user = users.find((u) => u.id === userId);
+      if (user) {
+        user.status = true;
+        user.socketId = socket.id;
+      } else {
+        users.push({ id: userId, status: true, socketId: socket.id });
+      }
+      io.emit("user list", users);
     });
 
     socket.on("update score", (userId, score) => {
       const user = users.find((u) => u.id === userId);
       if (user) {
         user.score = score;
+
+        const allScored = users.every((u) => u.score !== 0);
+        if (allScored) {
+          const totalScore = users.reduce((acc, user) => acc + user.score, 0);
+          const averageScore = totalScore / users.length;
+          io.emit("average score", averageScore);
+        }
+
         io.emit("user list", JSON.stringify(users));
       }
     });
@@ -65,21 +79,15 @@ module.exports = (io, users, msgs, getAdminAssigned, setAdminAssigned) => {
         io.emit("user list", JSON.stringify(users));
       }
     });
-    socket.on("user online", (userId) => {
-      users[userId] = { id: userId, status: true };
-      io.emit("user list", JSON.stringify(Object.values(users)));
-    });
 
     socket.on("disconnect", () => {
       console.log("A user disconnected");
-      for (let userId in users) {
-        if (users[userId].socketId === socket.id) {
-          users[userId].status = false;
-          delete users[userId].socketId; // socketId'yi kaldır
-          break;
-        }
+      const user = users.find((u) => u.socketId === socket.id);
+      if (user) {
+        user.status = false;
+        delete user.socketId;
+        io.emit("user list", JSON.stringify(users));
       }
-      io.emit("user list", JSON.stringify(Object.values(users)));
     });
   });
 };

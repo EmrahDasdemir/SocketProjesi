@@ -1,11 +1,11 @@
 const express = require("express");
-const router = express.Router();
 const { v4: uuidv4 } = require("uuid");
-const users = [];
-let adminAssigned = false;
+const router = express.Router();
+
+const users = []; // Kullanıcı listesi burada tutuluyor
+let adminAssigned = false; // Admin atanıp atanmadığını takip etmek için
 
 router.get("/", (req, res) => {
-  console.log("GET /users");
   console.log(users);
   res.json(users);
 });
@@ -14,71 +14,39 @@ router.post("/new-user", (req, res) => {
   console.log("POST /new-user", req.body);
   const { name, email } = req.body;
 
-  const isValidName = (name) => {
-    const nameRegex = /^[A-Za-z\s]{3,}$/;
-    return nameRegex.test(name);
-  };
+  const isValidName = (name) => /^[A-Za-z\s]{3,}$/.test(name);
 
-  const isValidEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   if (!isValidName(name)) {
-    console.log("Invalid name format");
     return res.status(400).json({ error: "Invalid name format" });
   }
 
   if (!isValidEmail(email)) {
-    console.log("Invalid email format");
     return res.status(400).json({ error: "Invalid email format" });
   }
 
-  if (name && email) {
-    let adminExists = users.some((user) => user.role === "admin");
-    const newUser = {
-      id: uuidv4(),
-      name: name,
-      email: email,
-      role: adminExists ? "user" : "admin",
-      score: -1,
-      socketId: null,
-      status: false,
-    };
+  let adminExists = users.some((user) => user.role === "admin");
+  const newUser = {
+    id: uuidv4(),
+    name,
+    email,
+    role: adminExists ? "user" : "admin",
+    score: -1,
+    socketId: null,
+    status: false,
+  };
 
-    if (newUser.role === "admin") {
-      users.forEach((user) => {
-        user.role = "user";
-      });
-    }
-    socket.on("new user", (name) => {
-      connectedUserName = name;
-
-      const role = getAdminAssigned() ? "user" : "admin";
-      if (!getAdminAssigned()) {
-        setAdminAssigned(true);
-      }
-
-      const newUser = {
-        id: uuidv4(),
-        name: name,
-        role: role,
-        score: -1,
-        socketId: socket.id,
-        status: true,
-      };
-      users.push(newUser);
-      io.emit("user list", JSON.stringify(users));
-      console.log(`${connectedUserName} connected as ${role}`);
+  if (newUser.role === "admin") {
+    users.forEach((user) => {
+      user.role = "user";
     });
-
-    users.push(newUser);
-    console.log(users);
-    res.status(201).json(newUser);
-  } else {
-    console.log("Name and email are required");
-    res.status(400).json({ error: "Name and email are required" });
+    adminAssigned = true;
   }
+
+  users.push(newUser);
+  console.log("Yeni kullanıcı eklendi:", newUser);
+  res.status(201).json(newUser);
 });
 
 router.post("/update-role", (req, res) => {
@@ -100,6 +68,7 @@ router.post("/update-role", (req, res) => {
       }
     });
     user.role = newRole;
+    adminAssigned = true;
     console.log(`${user.name} is now admin`);
   } else {
     user.role = newRole;

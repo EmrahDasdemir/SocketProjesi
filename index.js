@@ -4,12 +4,12 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
 const socketConnections = require("./routes/socketConnections");
-
 const app = express();
 app.use(cors());
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
+io.setMaxListeners(20);
 app.use(express.json());
 
 app.get("/", (req, res) => {
