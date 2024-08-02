@@ -4,27 +4,30 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
 const socketConnections = require("./routes/socketConnections");
+
 const app = express();
 app.use(cors());
+app.use(express.json());
+
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
-
-io.setMaxListeners(20);
-app.use(express.json());
 
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/index.html");
 });
-app.use("/users", userRoutes);
+
+app.use("/users", userRoutes(io));
 
 const users = [];
 const msgs = [];
+const time = [];
 let adminAssigned = false;
 
 socketConnections(
   io,
   users,
   msgs,
+  time,
   () => adminAssigned,
   (newAdminAssigned) => {
     adminAssigned = newAdminAssigned;

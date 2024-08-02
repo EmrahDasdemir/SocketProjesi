@@ -1,6 +1,13 @@
 const { v4: uuidv4 } = require("uuid");
 
-module.exports = (io, users, msgs, getAdminAssigned, setAdminAssigned) => {
+module.exports = (
+  io,
+  users,
+  msgs,
+  time,
+  getAdminAssigned,
+  setAdminAssigned
+) => {
   io.on("connection", (socket) => {
     console.log("A user connected");
 
@@ -16,16 +23,17 @@ module.exports = (io, users, msgs, getAdminAssigned, setAdminAssigned) => {
 
       const newUser = {
         id: uuidv4(),
-        name: name,
-        role: role,
+        name,
+        role,
         score: 0,
         socketId: socket.id,
         status: true,
       };
 
       users.push(newUser);
-      io.emit("user list", JSON.stringify(users));
-      console.log(`${connectedUserName} connected as ${role}`);
+      io.emit("user list", users);
+
+      console.log(`${connectedUserName} connected as ${role}`); // Kullanıcının adı ve rolünü yazdır
     });
 
     socket.on("chat message", (msg, userName) => {
@@ -34,6 +42,14 @@ module.exports = (io, users, msgs, getAdminAssigned, setAdminAssigned) => {
       console.log("Received message:", message);
       msgs.push(message);
       io.emit("chat message", JSON.stringify(msgs));
+    });
+
+    socket.on("new-user", (userName) => {
+      const timestamp = new Date().toLocaleTimeString();
+      const time = { name: userName, time: timestamp };
+      console.log("Received new user:", time);
+      msgs.push(time);
+      io.emit("registration time", JSON.stringify(time));
     });
 
     socket.on("user online", (userId) => {
@@ -59,7 +75,7 @@ module.exports = (io, users, msgs, getAdminAssigned, setAdminAssigned) => {
           io.emit("average score", averageScore);
         }
 
-        io.emit("user list", JSON.stringify(users));
+        io.emit("user list", users);
       }
     });
 
@@ -72,21 +88,23 @@ module.exports = (io, users, msgs, getAdminAssigned, setAdminAssigned) => {
           }
         });
         user.role = newRole;
-        io.emit("user list", JSON.stringify(users));
+        io.emit("user list", users);
         console.log(`${user.name} is now admin`);
       } else if (user) {
         user.role = newRole;
-        io.emit("user list", JSON.stringify(users));
+        io.emit("user list", users);
       }
     });
 
     socket.on("disconnect", () => {
-      console.log("A user disconnected");
+      console.log("A user disconnected:");
       const user = users.find((u) => u.socketId === socket.id);
       if (user) {
         user.status = false;
         delete user.socketId;
-        io.emit("user list", JSON.stringify(users));
+        io.emit("user list", users);
+
+        console.log(`User disconnected: ${user.name} as a role ${user.role}`);
       }
     });
   });
