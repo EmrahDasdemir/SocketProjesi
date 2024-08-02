@@ -1,13 +1,6 @@
 const { v4: uuidv4 } = require("uuid");
 
-module.exports = (
-  io,
-  users,
-  msgs,
-  time,
-  getAdminAssigned,
-  setAdminAssigned
-) => {
+module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
   io.on("connection", (socket) => {
     console.log("A user connected");
 
@@ -33,23 +26,19 @@ module.exports = (
       users.push(newUser);
       io.emit("user list", users);
 
-      console.log(`${connectedUserName} connected as ${role}`); // Kullanıcının adı ve rolünü yazdır
-    });
-
-    socket.on("chat message", (msg, userName) => {
-      const timestamp = new Date().toLocaleTimeString();
-      const message = { text: msg, name: userName, time: timestamp };
-      console.log("Received message:", message);
-      msgs.push(message);
-      io.emit("chat message", JSON.stringify(msgs));
+      console.log(`${connectedUserName} connected as ${role}`);
     });
 
     socket.on("new-user", (userName) => {
       const timestamp = new Date().toLocaleTimeString();
       const time = { name: userName, time: timestamp };
       console.log("Received new user:", time);
-      msgs.push(time);
       io.emit("registration time", JSON.stringify(time));
+    });
+
+    socket.on("break request", () => {
+      console.log("Break request received");
+      io.emit("break notification");
     });
 
     socket.on("user online", (userId) => {

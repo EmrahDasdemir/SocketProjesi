@@ -19,14 +19,12 @@ app.get("/", (req, res) => {
 app.use("/users", userRoutes(io));
 
 const users = [];
-const msgs = [];
 const time = [];
 let adminAssigned = false;
 
 socketConnections(
   io,
   users,
-  msgs,
   time,
   () => adminAssigned,
   (newAdminAssigned) => {

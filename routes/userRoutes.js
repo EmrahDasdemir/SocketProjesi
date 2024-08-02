@@ -46,7 +46,7 @@ module.exports = (io) => {
       role,
       score: -1,
       socketId: null,
-      status: true,
+      status: false,
       time: getCurrentTimestamp(),
     };
 
