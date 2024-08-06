@@ -3,107 +3,128 @@ const { v4: uuidv4 } = require("uuid");
 const router = express.Router();
 const dayjs = require("dayjs");
 
-let users = []; // `users` dizisini buraya taşıdım.
+let users = [];
 let adminAssigned = false;
+let io;
 
 const isValidName = (name) => /^[A-Za-z\s]{3,}$/.test(name);
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 const getCurrentTimestamp = () => dayjs().format("YYYY-MM-DDTHH:mm:ssZ");
 
-// Socket.io için io nesnesini dışarıdan al
-module.exports = (io) => {
-  router.get("/", (req, res) => {
-    res.json(users);
-  });
+const setIo = (localIo) => {
+  io = localIo;
+};
 
-  router.post("/new-user", (req, res) => {
-    const { name, email } = req.body;
+router.get("/", (req, res) => {
+  res.json(users);
+});
 
-    if (!isValidName(name)) {
-      return res.status(400).json({ error: "Invalid name format" });
-    }
+router.post("/new-user", (req, res) => {
+  const { name, email } = req.body;
 
-    if (!isValidEmail(email)) {
-      return res.status(400).json({ error: "Invalid email format" });
-    }
+  if (!isValidName(name)) {
+    return res.status(400).json({ error: "Invalid name format" });
+  }
 
-    let role = "user";
-    if (!adminAssigned) {
-      role = "admin";
-      adminAssigned = true;
-      users.forEach((user) => {
-        if (user.role === "admin") {
-          user.role = "user";
-        }
-      });
-    }
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: "Invalid email format" });
+  }
 
-    const newUser = {
-      id: uuidv4(),
-      name,
-      email,
-      role,
-      score: -1,
-      socketId: null,
-      status: false,
-      time: getCurrentTimestamp(),
-    };
+  let role = "user";
+  if (!adminAssigned) {
+    role = "admin";
+    adminAssigned = true;
+    users.forEach((user) => {
+      if (user.role === "admin") {
+        user.role = "user";
+      }
+    });
+  }
 
-    users.push(newUser);
-    io.emit("user list", users); // Güncel kullanıcı listesini yayınla
+  const newUser = {
+    id: uuidv4(),
+    name,
+    email,
+    role,
+    score: -1,
+    socketId: null,
+    status: true,
+    time: getCurrentTimestamp(),
+  };
 
-    console.log("New user connected:", newUser); // Kullanıcı eklenmesini terminale yazdır
+  users.push(newUser);
+  io.emit("user list", users);
 
-    res.status(201).json(newUser);
-  });
+  console.log("New user connected:", newUser);
 
-  router.post("/update-role", (req, res) => {
-    const { userId, newRole } = req.body;
+  res.status(201).json(newUser);
+});
 
-    if (!userId || !newRole) {
-      return res.status(400).json({ error: "userId and newRole are required" });
-    }
+router.post("/update-role", (req, res) => {
+  const { userId, newRole } = req.body;
 
-    const user = users.find((u) => u.id === userId);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+  if (!userId || !newRole) {
+    return res.status(400).json({ error: "userId and newRole are required" });
+  }
 
-    if (newRole === "admin") {
-      users.forEach((u) => {
-        if (u.role === "admin") {
-          u.role = "user";
-        }
-      });
-      user.role = newRole;
-      adminAssigned = true;
-    } else {
-      user.role = newRole;
-    }
+  const user = users.find((u) => u.id === userId);
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
 
-    io.emit("user list", users); // Güncel kullanıcı listesini yayınla
+  if (newRole === "admin") {
+    users.forEach((u) => {
+      if (u.role === "admin") {
+        u.role = "user";
+      }
+    });
+    user.role = newRole;
+    adminAssigned = true;
+  } else {
+    user.role = newRole;
+  }
 
-    console.log("User role updated:", user); // Kullanıcı rolü güncellenmesini terminale yazdır
+  io.emit("user list", users);
 
-    res.status(200).json(user);
-  });
+  console.log("User role updated:", user);
 
-  router.delete("/:userId", (req, res) => {
-    const { userId } = req.params;
+  res.status(200).json(user);
+});
+router.post("/update-status", (req, res) => {
+  const { userId } = req.body;
 
-    const userIndex = users.findIndex((user) => user.id === userId);
-    if (userIndex !== -1) {
-      const removedUser = users.splice(userIndex, 1)[0];
-      io.emit("user list", users); // Güncel kullanıcı listesini yayınla
+  const user = users.find((u) => u.id === userId);
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
 
-      console.log("User deleted:", removedUser); // Kullanıcı silinmesini terminale yazdır
+  user.status = false;
+  console.log("User status updated:", user);
 
-      res.status(200).json({ message: "User deleted successfully" });
-    } else {
-      res.status(404).json({ error: "User not found" });
-    }
-  });
+  io.emit("user list", users);
 
-  return router;
+  res.status(200).json(user);
+});
+
+router.delete("/:userId", (req, res) => {
+  const { userId } = req.params;
+
+  const userIndex = users.findIndex((user) => user.id === userId);
+  if (userIndex !== -1) {
+    const removedUser = users.splice(userIndex, 1)[0];
+    io.emit("user list", users);
+
+    console.log("User deleted:", removedUser);
+
+    res.status(200).json({ message: "User deleted successfully" });
+  } else {
+    res.status(404).json({ error: "User not found" });
+  }
+});
+
+module.exports = {
+  setIo,
+  router,
+  users,
 };
