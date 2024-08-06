@@ -4,6 +4,7 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
 const socketConnections = require("./routes/socketConnections");
+const voteRoute = require("./routes/voteRoute");
 
 const app = express();
 app.use(cors());
@@ -17,6 +18,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/users", userRoutes(io));
+app.use("/votes", voteRoute(io));
 
 const users = [];
 const time = [];

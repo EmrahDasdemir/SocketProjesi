@@ -56,16 +56,23 @@ module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
       const user = users.find((u) => u.id === userId);
       if (user) {
         user.score = score;
-
-        const allScored = users.every((u) => u.score !== 0);
-        if (allScored) {
-          const totalScore = users.reduce((acc, user) => acc + user.score, 0);
-          const averageScore = totalScore / users.length;
-          io.emit("average score", averageScore);
-        }
-
         io.emit("user list", users);
       }
+    });
+
+    socket.on("showResults", (scores) => {
+      scores.forEach(({ id, score }) => {
+        const user = users.find((u) => u.id === id);
+        if (user) {
+          user.score = score;
+        }
+      });
+
+      const results = users.map((user) => ({
+        id: user.id,
+        score: user.score,
+      }));
+      io.emit("results", results);
     });
 
     socket.on("updateRole", (userId, newRole) => {
@@ -86,14 +93,18 @@ module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
     });
 
     socket.on("disconnect", () => {
-      console.log("A user disconnected:");
+      console.log("A user disconnected");
       const user = users.find((u) => u.socketId === socket.id);
       if (user) {
         user.status = false;
         delete user.socketId;
         io.emit("user list", users);
 
-        console.log(`User disconnected: ${user.name} as a role ${user.role}`);
+        console.log(`User ${user.name} disconnected as a role ${user.role}`);
+      } else {
+        console.log(
+          `User with socket ID ${socket.id} disconnected, but not found in the users list`
+        );
       }
     });
   });
