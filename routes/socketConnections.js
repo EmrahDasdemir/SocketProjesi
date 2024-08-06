@@ -60,18 +60,12 @@ module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
       }
     });
 
-    socket.on("showResults", (scores) => {
-      scores.forEach(({ id, score }) => {
-        const user = users.find((u) => u.id === id);
-        if (user) {
-          user.score = score;
-        }
-      });
-
+    socket.on("showResults", () => {
       const results = users.map((user) => ({
-        id: user.id,
+        name: user.name,
         score: user.score,
       }));
+
       io.emit("results", results);
     });
 
