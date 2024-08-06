@@ -26,7 +26,10 @@ module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
       users.push(newUser);
       io.emit("user list", users);
 
-      console.log(`${connectedUserName} connected as ${role}`);
+      console.log(
+        `New user added: ${name}, Role: ${role}, Socket ID: ${socket.id}`
+      );
+      console.log("Current users list:", users);
     });
 
     socket.on("new-user", (userName) => {
@@ -60,13 +63,24 @@ module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
       }
     });
 
-    socket.on("showResults", () => {
+    socket.on("showResults", (scores) => {
+      scores.forEach(({ id, score }) => {
+        const user = users.find((u) => u.id === id);
+        if (user) {
+          user.score = score;
+        }
+      });
+
+      const totalScore = users.reduce((acc, user) => acc + user.score, 0);
+      const averageScore = totalScore / users.length;
+
       const results = users.map((user) => ({
+        id: user.id,
         name: user.name,
         score: user.score,
       }));
 
-      io.emit("results", results);
+      io.emit("results", { results, averageScore });
     });
 
     socket.on("updateRole", (userId, newRole) => {
@@ -87,11 +101,12 @@ module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
     });
 
     socket.on("disconnect", () => {
-      console.log("A user disconnected");
+      console.log(`Attempting to find user with socket ID: ${socket.id}`);
       const user = users.find((u) => u.socketId === socket.id);
+
       if (user) {
-        user.status = false;
-        delete user.socketId;
+        users.status = false;
+        users.socketId = null;
         io.emit("user list", users);
 
         console.log(`User ${user.name} disconnected as a role ${user.role}`);
@@ -99,6 +114,7 @@ module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
         console.log(
           `User with socket ID ${socket.id} disconnected, but not found in the users list`
         );
+        console.log("Current users list:", users);
       }
     });
   });
