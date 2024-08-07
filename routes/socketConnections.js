@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require("uuid");
 
 module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
   io.on("connection", (socket) => {
+    const session = socket.request.session;
     console.log("A user connected");
 
     let connectedUserName = null;
@@ -24,6 +25,15 @@ module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
       };
 
       users.push(newUser);
+      session.userId = newUser.id;
+      session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+        } else {
+          console.log("Session saved:", session);
+        }
+      });
+
       io.emit("user list", users);
 
       console.log(
@@ -42,6 +52,21 @@ module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
     socket.on("break request", () => {
       console.log("Break request received");
       io.emit("break notification");
+    });
+
+    socket.on("show results", () => {
+      console.log("Show results received");
+      io.emit("show-results");
+    });
+
+    socket.on("show card", () => {
+      console.log("Show card received");
+      io.emit("show-card");
+    });
+
+    socket.on("startcount", () => {
+      console.log("startcount received");
+      io.emit("start-count");
     });
 
     socket.on("user online", (userId) => {
@@ -101,12 +126,12 @@ module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
     });
 
     socket.on("disconnect", () => {
-      console.log(`Attempting to find user with socket ID: ${socket.id}`);
-      const user = users.find((u) => u.socketId === socket.id);
+      const userId = session.userId;
+      const user = users.find((user) => user.id === userId);
 
       if (user) {
-        users.status = false;
-        users.socketId = null;
+        user.status = false;
+        user.socketId = null;
         io.emit("user list", users);
 
         console.log(`User ${user.name} disconnected as a role ${user.role}`);
