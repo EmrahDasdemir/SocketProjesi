@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require("uuid");
-
-module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
+const { isValidName, isValidEmail } = require("../utils/validation");
+const { users } = require("./userRoutes");
+module.exports = (io, time, getAdminAssigned, setAdminAssigned) => {
   io.on("connection", (socket) => {
     const session = socket.request.session;
     console.log("A user connected");
@@ -59,14 +60,23 @@ module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
       io.emit("show-results");
     });
 
-    socket.on("show card", () => {
-      console.log("Show card received");
-      io.emit("show-card");
+    socket.on("startcount", () => {
+      console.log("start count received");
+      io.emit("start-count");
     });
 
-    socket.on("startcount", () => {
-      console.log("startcount received");
-      io.emit("start-count");
+    socket.on("show card", () => {
+      console.log("Show card received");
+
+      users.forEach((user) => {
+        if (user.socketId) {
+          console.log(`Updating score for user: ${user.name}`);
+          user.score = -1;
+        }
+      });
+
+      io.emit("user list", users);
+      io.emit("show-card");
     });
 
     socket.on("user online", (userId) => {
@@ -127,9 +137,10 @@ module.exports = (io, users, time, getAdminAssigned, setAdminAssigned) => {
 
     socket.on("disconnect", () => {
       const userId = session.userId;
-      const user = users.find((user) => user.id === userId);
+      const userIndex = users.findIndex((user) => user.id === userId);
 
-      if (user) {
+      if (userIndex !== -1) {
+        const user = users[userIndex];
         user.status = false;
         user.socketId = null;
         io.emit("user list", users);

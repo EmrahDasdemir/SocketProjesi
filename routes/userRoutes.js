@@ -1,14 +1,12 @@
 const express = require("express");
-const { v4: uuidv4 } = require("uuid");
+const { v4: uuidv4, stringify } = require("uuid");
 const router = express.Router();
 const dayjs = require("dayjs");
+const { isValidName, isValidEmail } = require("../utils/validation");
 
 let users = [];
 let adminAssigned = false;
 let io;
-
-const isValidName = (name) => /^[A-Za-z\s]{3,}$/.test(name);
-const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 const getCurrentTimestamp = () => dayjs().format("YYYY-MM-DDTHH:mm:ssZ");
 
@@ -54,11 +52,38 @@ router.post("/new-user", (req, res) => {
   };
 
   users.push(newUser);
+
+  const updateUserSocketId = (users, socketId) => {
+    users.forEach((user) => {
+      if (!user.socketId) {
+        user.socketId = socketId;
+      }
+    });
+  };
+  const socketId = "newSocketId";
+
+  updateUserSocketId(users, socketId);
+  console.log(users);
+
   io.emit("user list", users);
 
-  console.log("New user connected:", newUser);
+  console.log("New user created:", newUser);
 
   res.status(201).json(newUser);
+});
+
+router.post("/update-socket-id", (req, res) => {
+  const { userId, socketId } = req.body;
+
+  const user = users.find((u) => u.id === userId);
+  if (user) {
+    user.socketId = socketId;
+    io.emit("user list", users);
+    console.log(`User ${userId}'s socketId updated to ${socketId}`);
+    res.status(200).json(user);
+  } else {
+    res.status(404).json({ error: "User not found" });
+  }
 });
 
 router.post("/update-role", (req, res) => {
@@ -91,6 +116,7 @@ router.post("/update-role", (req, res) => {
 
   res.status(200).json(user);
 });
+
 router.post("/update-status", (req, res) => {
   const { userId } = req.body;
 

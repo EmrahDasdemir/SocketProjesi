@@ -1,4 +1,4 @@
-const NAME_REGEX = /^[A-Za-z\s]{3,}$/;
+const NAME_REGEX = /^[A-Za-zÇĞİÖŞÜçğıöşü\s]{3,}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const isValidName = (name) => NAME_REGEX.test(name);

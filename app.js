@@ -39,7 +39,6 @@ app.use("/votes", voteRoute.router);
 
 socketConnections(
   io,
-  users,
   time,
   () => adminAssigned,
   (newAdminAssigned) => {
