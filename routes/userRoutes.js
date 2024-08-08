@@ -46,7 +46,7 @@ router.post("/new-user", (req, res) => {
     email,
     role,
     score: -1,
-    socketId: null,
+    socketId: req.body.socketId,
     status: true,
     time: getCurrentTimestamp(),
   };
@@ -118,19 +118,19 @@ router.post("/update-role", (req, res) => {
 });
 
 router.post("/update-status", (req, res) => {
-  const { userId } = req.body;
+  // const { userId } = req.body;
 
-  const user = users.find((u) => u.id === userId);
-  if (!user) {
-    return res.status(404).json({ error: "User not found" });
-  }
+  // const user = users.find((u) => u.id === userId);
+  // if (!user) {
+  //   return res.status(404).json({ error: "User not found" });
+  // }
 
-  user.status = false;
-  console.log("User status updated:", user);
+  // user.status = false;
+  // console.log("User status updated:", user);
 
-  io.emit("user list", users);
+  // io.emit("user list", users);
 
-  res.status(200).json(user);
+  res.status(200).json({});
 });
 
 router.delete("/:userId", (req, res) => {

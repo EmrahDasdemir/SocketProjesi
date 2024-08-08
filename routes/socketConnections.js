@@ -4,8 +4,6 @@ const { users } = require("./userRoutes");
 module.exports = (io, time, getAdminAssigned, setAdminAssigned) => {
   io.on("connection", (socket) => {
     const session = socket.request.session;
-    console.log("A user connected");
-
     let connectedUserName = null;
 
     socket.on("new user", (name) => {
@@ -79,17 +77,6 @@ module.exports = (io, time, getAdminAssigned, setAdminAssigned) => {
       io.emit("show-card");
     });
 
-    socket.on("user online", (userId) => {
-      const user = users.find((u) => u.id === userId);
-      if (user) {
-        user.status = true;
-        user.socketId = socket.id;
-      } else {
-        users.push({ id: userId, status: true, socketId: socket.id });
-      }
-      io.emit("user list", users);
-    });
-
     socket.on("update score", (userId, score) => {
       const user = users.find((u) => u.id === userId);
       if (user) {
@@ -136,22 +123,19 @@ module.exports = (io, time, getAdminAssigned, setAdminAssigned) => {
     });
 
     socket.on("disconnect", () => {
-      const userId = session.userId;
-      const userIndex = users.findIndex((user) => user.id === userId);
-
-      if (userIndex !== -1) {
-        const user = users[userIndex];
+      const user = users.find((item) => item.socketId === socket.id);
+      if (user) {
         user.status = false;
-        user.socketId = null;
-        io.emit("user list", users);
-
-        console.log(`User ${user.name} disconnected as a role ${user.role}`);
-      } else {
-        console.log(
-          `User with socket ID ${socket.id} disconnected, but not found in the users list`
-        );
-        console.log("Current users list:", users);
       }
+      io.emit("user list", users);
+    });
+    socket.on("userConnected", (data) => {
+      const user = users.find((item) => item.id === data);
+      if (user) {
+        user.status = true;
+        user.socketId = socket.id;
+      }
+      io.emit("user list", users);
     });
   });
 };
