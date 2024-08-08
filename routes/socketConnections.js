@@ -52,6 +52,10 @@ module.exports = (io, time, getAdminAssigned, setAdminAssigned) => {
       console.log("Break request received");
       io.emit("break notification");
     });
+    socket.on("elmo-req", () => {
+      console.log("elmo request received");
+      io.emit("elmo-req");
+    });
 
     socket.on("show results", () => {
       console.log("Show results received");
@@ -61,6 +65,17 @@ module.exports = (io, time, getAdminAssigned, setAdminAssigned) => {
     socket.on("startcount", () => {
       console.log("start count received");
       io.emit("start-count");
+    });
+
+    socket.on("voteReset", () => {
+      users.forEach((user) => {
+        if (user.socketId) {
+          console.log(`VoteResetting: ${user.name}`);
+          user.score = -1;
+        }
+      });
+      io.emit("user list", users);
+      io.emit("voteReset");
     });
 
     socket.on("show card", () => {
