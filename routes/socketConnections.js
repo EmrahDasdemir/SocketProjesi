@@ -138,8 +138,8 @@ module.exports = (io, time, getAdminAssigned, setAdminAssigned) => {
     });
     socket.on("idCheck", (userId) => {
       const userIdCheck = users.find((u) => u.id === userId);
-      console.log(userIdCheck);
-      io.emit("idCheckResult", userIdCheck);
+      console.log(userIdCheck, "==================================>");
+      io.emit("idCheckResult", userIdCheck.id);
     });
     socket.on("mailCheck", (userMail) => {
       const userMailCheck = users.find((u) => u.email === userMail);
