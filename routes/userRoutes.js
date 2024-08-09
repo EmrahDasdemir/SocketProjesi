@@ -21,6 +21,15 @@ router.get("/", (req, res) => {
 router.post("/new-user", (req, res) => {
   const { name, email } = req.body;
 
+  // try {
+  //   const existingUser = users.findOne({ email });
+  //   if (existingUser) {
+  //     return res.status(400).json({ error: "This email already taken." });
+  //   }
+  // } catch (error) {
+  //   return res.status(400).json({ error: "catch part active." });
+  // }
+
   if (!isValidName(name)) {
     return res.status(400).json({ error: "Invalid name format" });
   }
@@ -30,7 +39,7 @@ router.post("/new-user", (req, res) => {
   }
 
   let role = "user";
-  if (!adminAssigned) {
+  if (!adminAssigned || users.length == 0) {
     role = "admin";
     adminAssigned = true;
     users.forEach((user) => {

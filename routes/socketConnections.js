@@ -48,8 +48,8 @@ module.exports = (io, time, getAdminAssigned, setAdminAssigned) => {
       io.emit("registration time", JSON.stringify(time));
     });
 
-    socket.on("break request", () => {
-      console.log("Break request received");
+    socket.on("break request", (name) => {
+      console.log(`Breake request recieved: ${name},`);
       io.emit("break notification");
     });
     socket.on("elmo-req", () => {
@@ -62,9 +62,9 @@ module.exports = (io, time, getAdminAssigned, setAdminAssigned) => {
       io.emit("show-results");
     });
 
-    socket.on("startcount", () => {
+    socket.on("startcount", (data) => {
       console.log("start count received");
-      io.emit("start-count");
+      io.emit("start-count", data);
     });
 
     socket.on("voteReset", () => {
@@ -136,12 +136,23 @@ module.exports = (io, time, getAdminAssigned, setAdminAssigned) => {
         io.emit("user list", users);
       }
     });
+    socket.on("idCheck", (userId) => {
+      const userIdCheck = users.find((u) => u.id === userId);
+      console.log(userIdCheck);
+      io.emit("idCheckResult", userIdCheck);
+    });
+    socket.on("mailCheck", (userMail) => {
+      const userMailCheck = users.find((u) => u.email === userMail);
+      console.log(userMailCheck);
+      io.emit("mailCheckResult", userMailCheck);
+    });
 
     socket.on("disconnect", () => {
       const user = users.find((item) => item.socketId === socket.id);
       if (user) {
         user.status = false;
       }
+
       io.emit("user list", users);
     });
     socket.on("userConnected", (data) => {
