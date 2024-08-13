@@ -120,6 +120,7 @@ router.post("/update-role", (req, res) => {
   }
 
   io.emit("user list", users);
+  io.emit("updatedRole", { userId, newRole });
 
   console.log("User role updated:", user);
 
@@ -148,7 +149,11 @@ router.delete("/:userId", (req, res) => {
   const userIndex = users.findIndex((user) => user.id === userId);
   if (userIndex !== -1) {
     const removedUser = users.splice(userIndex, 1)[0];
+    if (removedUser.role === "admin") {
+      adminAssigned = false;
+    }
     io.emit("user list", users);
+    io.emit("userDeleted", userId);
 
     console.log("User deleted:", removedUser);
 

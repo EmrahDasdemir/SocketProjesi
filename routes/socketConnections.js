@@ -78,6 +78,11 @@ module.exports = (io, time, getAdminAssigned, setAdminAssigned) => {
       io.emit("voteReset");
     });
 
+    socket.on("cardSelection", (key, numbers) => {
+      console.log("Cardselection received");
+      io.emit("cardSelection", key, numbers);
+    });
+
     socket.on("show card", () => {
       console.log("Show card received");
 
@@ -136,15 +141,21 @@ module.exports = (io, time, getAdminAssigned, setAdminAssigned) => {
         io.emit("user list", users);
       }
     });
-    socket.on("idCheck", (userId) => {
-      const userIdCheck = users.find((u) => u.id === userId);
-      console.log(userIdCheck);
-      io.emit("idCheckResult", userIdCheck);
+
+    socket.on("deleteUser", (userId) => {
+      io.emit("userDeleted", userId);
     });
-    socket.on("mailCheck", (userMail) => {
-      const userMailCheck = users.find((u) => u.email === userMail);
-      console.log(userMailCheck);
-      io.emit("mailCheckResult", userMailCheck);
+
+    socket.on("updatedRole", ({ userId, newRole }) => {
+      io.emit("updatedRole", { userId, newRole });
+    });
+
+    socket.on("idCheck", (userId) => {
+      console.log(userId);
+
+      const userIdCheck = users.find((u) => u.id === userId);
+      console.log(userIdCheck, "==================================>");
+      io.emit("idCheckResult", userIdCheck.id);
     });
 
     socket.on("disconnect", () => {
